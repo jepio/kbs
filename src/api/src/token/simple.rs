@@ -67,6 +67,7 @@ impl AttestationTokenBroker for SimpleAttestationTokenBroker {
             .to_vec();
 
         let jwk = json!({
+            "alg": ES256KeyPair::jwt_alg_name(),
             "kty": "EC",
             "crv": "P-256",
             "x": base64::encode_config(ecdsa_x, base64::URL_SAFE_NO_PAD),
