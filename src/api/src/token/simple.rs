@@ -42,11 +42,11 @@ impl AttestationTokenBroker for SimpleAttestationTokenBroker {
         Ok(token)
     }
 
-    fn verify(&self, token: String) -> Result<String> {
+    fn verify(&self, token: &str) -> Result<String> {
         let claims = self
             .key_pair
             .public_key()
-            .verify_token::<Value>(&token, None)?;
+            .verify_token::<Value>(token, None)?;
         Ok(serde_json::to_string(&claims)?)
     }
 

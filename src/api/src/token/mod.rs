@@ -18,7 +18,7 @@ pub trait AttestationTokenBroker {
 
     /// Verify an signed attestation token.
     /// Returns the custom claims JSON string of the token.
-    fn verify(&self, token: String) -> Result<String>;
+    fn verify(&self, token: &str) -> Result<String>;
 
     /// Get the X.509 formatted certificate chain of the attestation token broker.
     /// Returns the certificate chain in JWKS format (https://www.rfc-editor.org/rfc/rfc7517#appendix-B).
