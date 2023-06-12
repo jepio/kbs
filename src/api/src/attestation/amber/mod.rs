@@ -3,10 +3,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use super::Attest;
+use crate::attestation::decode_token;
 use anyhow::*;
 use as_types::AttestationResults;
 use async_trait::async_trait;
-use jsonwebtoken::{decode, decode_header, jwk, DecodingKey, Validation};
+use jsonwebtoken::jwk;
 use kbs_types::{Attestation, Tee};
 use reqwest::header::{ACCEPT, CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
@@ -97,19 +98,8 @@ impl Attest for Amber {
             .json::<AttestRespData>()
             .await
             .map_err(|e| anyhow!("Deserialize attestation respone failed: {:?}", e))?;
-        let header = decode_header(&resp_data.token)
-            .map_err(|e| anyhow!("Decode token header failed: {:?}", e))?;
-        let kid = header.kid.ok_or(anyhow!("Token missing kid"))?;
 
-        log::debug!("token={}", &resp_data.token);
-
-        // find jwk
-        let key = self.certs.find(&kid).ok_or(anyhow!("Find jwk failed"))?;
-        let alg = key.common.algorithm.ok_or(anyhow!("Get jwk alg failed"))?;
-
-        // verify and decode token
-        let dkey = DecodingKey::from_jwk(&key)?;
-        let token = decode::<Claims>(&resp_data.token, &dkey, &Validation::new(alg))
+        let token = decode_token::<Claims>(&resp_data.token, &self.certs)
             .map_err(|e| anyhow!("Decode token failed: {:?}", e))?;
 
         // check unmatched policy

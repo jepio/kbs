@@ -6,6 +6,8 @@ use crate::config::Config;
 use anyhow::*;
 use as_types::AttestationResults;
 use async_trait::async_trait;
+#[cfg(feature = "jsonwebtoken")]
+use jsonwebtoken::{decode, decode_header, jwk, DecodingKey, TokenData, Validation};
 use kbs_types::Tee;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -58,4 +60,26 @@ impl AttestationService {
 
         Ok(Self(attestation_service))
     }
+}
+
+#[cfg(feature = "jsonwebtoken")]
+pub fn decode_token<Claims: serde::de::DeserializeOwned>(
+    token: &str,
+    certs: &jwk::JwkSet,
+) -> Result<TokenData<Claims>> {
+    let header =
+        decode_header(token).map_err(|e| anyhow!("Decode token header failed: {:?}", e))?;
+    let kid = header.kid.ok_or(anyhow!("Token missing kid"))?;
+
+    log::debug!("token={}", &token);
+
+    // find jwk
+    let key = certs.find(&kid).ok_or(anyhow!("Find jwk failed"))?;
+    let alg = key.common.algorithm.ok_or(anyhow!("Get jwk alg failed"))?;
+
+    // verify and decode token
+    let dkey = DecodingKey::from_jwk(key)?;
+    let token = decode::<Claims>(token, &dkey, &Validation::new(alg))
+        .map_err(|e| anyhow!("Decode token failed: {:?}", e))?;
+    Ok(token)
 }
