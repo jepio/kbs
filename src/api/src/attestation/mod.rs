@@ -7,7 +7,7 @@ use anyhow::*;
 use as_types::AttestationResults;
 use async_trait::async_trait;
 #[cfg(feature = "jsonwebtoken")]
-use jsonwebtoken::{decode, decode_header, jwk, DecodingKey, TokenData, Validation};
+use jsonwebtoken::{decode, decode_header, jwk, Algorithm, DecodingKey, TokenData, Validation};
 use kbs_types::Tee;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -75,7 +75,34 @@ pub fn decode_token<Claims: serde::de::DeserializeOwned>(
 
     // find jwk
     let key = certs.find(&kid).ok_or(anyhow!("Find jwk failed"))?;
-    let alg = key.common.algorithm.ok_or(anyhow!("Get jwk alg failed"))?;
+    let key_alg = key.common.algorithm.ok_or(());
+    let alg = key_alg.or_else(|_| {
+        let key_type = &key.algorithm;
+        match key_type {
+            jwk::AlgorithmParameters::EllipticCurve(p) => match p.curve {
+                jwk::EllipticCurve::P256 => Ok(Algorithm::ES256),
+                jwk::EllipticCurve::P384 => Ok(Algorithm::ES384),
+                _ => Err(anyhow!("Unsupported curve: {:?}", p.curve)),
+            },
+            jwk::AlgorithmParameters::RSA(_) => {
+                let alg = header.alg;
+                let allowed_algos = [
+                    Algorithm::RS256,
+                    Algorithm::RS384,
+                    Algorithm::RS512,
+                    Algorithm::PS256,
+                    Algorithm::PS384,
+                    Algorithm::PS512,
+                ];
+                if !allowed_algos.contains(&alg) {
+                    Err(anyhow!("Unsupported RSA algorithm: {:?}", alg))
+                } else {
+                    Ok(alg)
+                }
+            }
+            _ => Err(anyhow!("Unsupported key algorithm: {:?}", key_type)),
+        }
+    })?;
 
     // verify and decode token
     let dkey = DecodingKey::from_jwk(key)?;
