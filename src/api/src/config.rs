@@ -33,6 +33,12 @@ pub struct Config {
     /// * `Simple`
     pub attestation_token_type: AttestationTokenBrokerType,
 
+    //// The Attestation Token Broker configuration (Optional).
+    ///
+    /// This is a JSON string describing the broker configuration.
+    /// The JSON string schema is broker type specific.
+    pub attestation_token_broker_config: Option<Value>,
+
     /// The Remote Attestation Service API address (Optional).
     ///
     /// This is only relevant when running the Confidential Containers
@@ -61,6 +67,7 @@ impl Default for Config {
             repository_type: RepositoryType::LocalFs,
             repository_description: None,
             attestation_token_type: AttestationTokenBrokerType::Simple,
+            attestation_token_broker_config: None,
             as_addr: None,
             as_config_file_path: None,
             #[cfg(feature = "amber-as")]

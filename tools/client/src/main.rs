@@ -5,7 +5,7 @@
 //! A simple KBS client for test.
 
 use anyhow::{bail, Result};
-use api_server::attestation::decode_token;
+use api_server::token::AttestationTokenBroker;
 use as_types::SetPolicyInput;
 use clap::{Args, Parser, Subcommand};
 use jwt_simple::prelude::{Claims, Duration, Ed25519KeyPair, EdDSAKeyPairLike};
@@ -110,18 +110,11 @@ async fn main() -> Result<()> {
         Commands::Verify(verify) => {
             let rawtoken = std::fs::read_to_string(verify.token_file)?;
             let token = rawtoken.trim();
-            let http_client = reqwest::Client::new();
-            let response = http_client
-                .get(format!(
-                    "{}/{KBS_URL_PREFIX}/token-certificate-chain",
-                    &cli.url
-                ))
-                .send()
-                .await?;
-            let jwks = response.json::<jsonwebtoken::jwk::JwkSet>().await?;
-            let token = decode_token::<serde_json::Value>(token, &jwks)?;
-            println!("{}", serde_json::to_string(&token.header)?);
-            println!("{}", serde_json::to_string(&token.claims)?);
+            let url = format!("{}/{KBS_URL_PREFIX}/token-certificate-chain", &cli.url);
+            let token_broker =
+                api_server::token::external::ExternalAttestationTokenBroker::new_from_url(&url)?;
+            let claims = token_broker.verify(token)?;
+            println!("{}", serde_json::to_string(&claims)?);
         }
         Commands::Attest => {
             let token = kbs_protocol_wrapper.attest(String::from(&cli.url)).await?;

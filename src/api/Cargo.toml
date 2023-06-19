@@ -15,6 +15,7 @@ coco-as-grpc = ["coco-as", "tonic", "tonic-build", "prost"]
 amber-as = ["reqwest", "jsonwebtoken"]
 rustls = ["actix-web/rustls", "dep:rustls", "dep:rustls-pemfile"]
 openssl = ["actix-web/openssl", "dep:openssl"]
+jsonwebtoken = ["dep:jsonwebtoken", "reqwest/blocking"]
 
 [dependencies]
 actix-web = "4"

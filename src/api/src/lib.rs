@@ -44,7 +44,7 @@ mod auth;
 mod http;
 mod resource;
 mod session;
-mod token;
+pub mod token;
 
 static KBS_PREFIX: &str = "/kbs";
 static KBS_MAJOR_VERSION: u64 = 0;
@@ -194,9 +194,12 @@ impl ApiServer {
             .repository_type
             .to_repository(&self.config.repository_description)?;
 
-        let token_broker = self.config.attestation_token_type.to_token_broker()?;
+        let token_broker = self
+            .config
+            .attestation_token_type
+            .to_token_broker(self.config.attestation_token_broker_config.as_ref())?;
 
-        let user_public_key = match self.insecure_api {
+        let user_public_key: Option<Ed25519PublicKey> = match self.insecure_api {
             true => None,
             false => match &self.user_public_key {
                 Some(key_path) => {

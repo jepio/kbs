@@ -4,5 +4,8 @@
         "dir_path": "/opt/confidential-containers/kbs/repository"
     },
     "attestation_token_type": "Simple",
+    "attestation_token_broker_config": {
+	    "url": "http://localhost:8080/"
+    },
     "as_addr": "http://as:50004"
 }

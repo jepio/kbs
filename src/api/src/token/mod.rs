@@ -9,6 +9,8 @@ use std::sync::Arc;
 use strum_macros::EnumString;
 use tokio::sync::RwLock;
 
+#[cfg(feature = "jsonwebtoken")]
+pub mod external;
 mod simple;
 
 pub trait AttestationTokenBroker {
@@ -28,15 +30,30 @@ pub trait AttestationTokenBroker {
 #[derive(Deserialize, Debug, Clone, EnumString)]
 pub enum AttestationTokenBrokerType {
     Simple,
+    External,
 }
 
 impl AttestationTokenBrokerType {
-    pub fn to_token_broker(&self) -> Result<Arc<RwLock<dyn AttestationTokenBroker + Send + Sync>>> {
+    pub fn to_token_broker(
+        &self,
+        config: Option<&Value>,
+    ) -> Result<Arc<RwLock<dyn AttestationTokenBroker + Send + Sync>>> {
         match self {
             AttestationTokenBrokerType::Simple => Ok(Arc::new(RwLock::new(
                 simple::SimpleAttestationTokenBroker::new()?,
             ))
                 as Arc<RwLock<dyn AttestationTokenBroker + Send + Sync>>),
+            AttestationTokenBrokerType::External => {
+                cfg_if::cfg_if! {
+                    if #[cfg(feature = "jsonwebtoken")] {
+                        Ok(Arc::new(RwLock::new(
+                            external::ExternalAttestationTokenBroker::new(config)?,
+                        )))
+                    } else {
+                        Err(anyhow!("External token broker is not supported when jsonwebtoken is disabled"))
+                    }
+                }
+            }
         }
     }
 }

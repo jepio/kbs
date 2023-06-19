@@ -4,7 +4,7 @@ kbs:
 
 .PHONY: kbs-coco-as
 kbs-coco-as:
-	cargo build --no-default-features --features coco-as-builtin,rustls
+	cargo build --no-default-features --features coco-as-builtin,rustls,jsonwebtoken
 
 .PHONY: kbs-coco-as-grpc
 kbs-coco-as-grpc:
